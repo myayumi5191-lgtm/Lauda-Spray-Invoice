@@ -9,7 +9,7 @@ h2{font-size:15px;margin:0 0 14px;color:var(--ink)}label{display:block;color:var
 @page{margin:10mm}@media print{.invoice-meta{display:flex!important;align-items:flex-end!important;justify-content:space-between!important}.invoice-date{width:auto!important;text-align:right!important}*{color:#000!important}body{background:#fff!important;color:#000!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}header{background:#fff!important;padding:10px;border-color:var(--orange)}header h1{color:var(--orange)!important}header small{color:#000!important}main{display:block;margin:0;padding:0}.panel{background:#fff!important;box-shadow:none;border:0;padding:8px 0;margin:0}.noprint,.notice{display:none!important}input{background:#fff!important;color:#000!important;border:0;padding:4px}.items-frame{background:#fff!important;border:1px solid #ddd}.item{border:0!important}.items-head,label,.muted,.bank,.line,.total{color:#000!important}.total span:last-child{color:#000!important}}
 </style><body><header><h1>LAUDA SPRAY</h1><small>AUTOMOTIVE SPRAY & REPAIR</small></header><main>
 <section class="panel"><h2>INVOICE</h2><div class="muted">17, Mutiara Emas 7/3, Mount Austin, 81100 Johor Bahru<br>Tel: 016-746 6772</div>
-<div class="invoice-meta"><div class="invoice-label"><label>Invoice Number</label><input id="inv" readonly></div><input id="dt" class="invoice-date" readonly aria-label="Invoice date"></div>
+<div class="invoice-meta"><div class="invoice-label"><label>Invoice Number</label><input id="inv" inputmode="text" autocomplete="off"></div><input id="dt" class="invoice-date" readonly aria-label="Invoice date"></div>
 <div class="row"><div><label>TO</label><input id="to" placeholder="Vehicle registration number"></div></div>
 <label>Items</label><div class="items-frame"><div class="items-head"><span>Description</span><span>Qty</span><span>Unit RM</span><span>Amount</span><span></span></div><div id="items"></div></div><button class="secondary noprint" onclick="add()">＋ Add Item</button>
 <div class="line"><span>Subtotal</span><b id="sub">RM 0.00</b></div><div class="line total"><span>TOTAL</span><span id="tot">RM 0.00</span></div>
@@ -18,13 +18,13 @@ h2{font-size:15px;margin:0 0 14px;color:var(--ink)}label{display:block;color:var
 <script>
 const $=id=>document.getElementById(id), fmt=n=>'RM '+(Number(n)||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});let seq=0,current='';
 function data(){try{return JSON.parse(localStorage.getItem('lsInvoices')||'[]')}catch(e){return []}}
-function next(){let y=new Date().getFullYear(),n=data().filter(x=>x.no.startsWith('LS-'+y+'-')).map(x=>+x.no.split('-').pop()||0);return 'LS-'+y+'-'+String(Math.max(0,...n)+1).padStart(4,'0')}
+function next(){let y=new Date().getFullYear(),prefix='LS-'+y+'-',saved=data().filter(x=>String(x.no||'').startsWith(prefix)).map(x=>parseInt(String(x.no).slice(prefix.length),10)||0),key='lsInvoiceCounter_'+y,last=parseInt(localStorage.getItem(key)||'0',10)||0,n=Math.max(0,...saved,last)+1;localStorage.setItem(key,String(n));return prefix+String(n).padStart(4,'0')}
 function add(desc='',q=1,p=0){let id=++seq,e=document.createElement('div');e.className='item';e.dataset.id=id;e.innerHTML=`<div class="ig"><div><input class="desc" value="${esc(desc)}" placeholder="Repair / spray item" oninput="calc()"></div><div><input class="qty" type="number" min="0" step=".01" value="${q}" oninput="calc()"></div><div><input class="price" type="number" min="0" step=".01" value="${p}" oninput="calc()"></div><div><input class="amt" readonly></div><button class="danger noprint remove" title="Remove item" onclick="this.closest('.item').remove();renum();calc()">×</button></div>`;$('items').append(e);calc()}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function renum(){document.querySelectorAll('.top b').forEach((x,i)=>x.textContent='ITEM '+(i+1))}
 function calc(){let s=0;document.querySelectorAll('.item').forEach(e=>{let a=Math.max(0,+e.querySelector('.qty').value||0)*Math.max(0,+e.querySelector('.price').value||0);s+=a;e.querySelector('.amt').value=fmt(a)});$('sub').textContent=fmt(s);$('tot').textContent=fmt(s);return {s,t:s}}
-function payload(){let c=calc();return {no:current,date:$('dt').value,to:$('to').value,subtotal:c.s,total:c.t,items:[...document.querySelectorAll('.item')].map(e=>({desc:e.querySelector('.desc').value,q:+e.querySelector('.qty').value||0,p:+e.querySelector('.price').value||0})),updated:new Date().toISOString()}}
-function save(){let p=payload(),a=data(),i=a.findIndex(x=>x.no===p.no);if(i<0)a.unshift(p);else a[i]=p;localStorage.setItem('lsInvoices',JSON.stringify(a));render();alert('Saved in this browser.')}
+function payload(){let c=calc();return {no:$('inv').value.trim(),date:$('dt').value,to:$('to').value,subtotal:c.s,total:c.t,items:[...document.querySelectorAll('.item')].map(e=>({desc:e.querySelector('.desc').value,q:+e.querySelector('.qty').value||0,p:+e.querySelector('.price').value||0})),updated:new Date().toISOString()}}
+function save(){let p=payload(),a=data();if(!p.no){alert('Please enter an invoice number.');return}let duplicate=a.find(x=>x.no===p.no&&x.no!==current);if(duplicate){alert('This invoice number already exists. Please use a different number.');return}let i=a.findIndex(x=>x.no===current);if(i<0)i=a.findIndex(x=>x.no===p.no);if(i<0)a.unshift(p);else a[i]=p;current=p.no;localStorage.setItem('lsInvoices',JSON.stringify(a));render();alert('Saved in this browser.')}
 function load(no){let p=data().find(x=>x.no===no);if(!p)return;current=p.no;$('inv').value=current;$('dt').value=p.date;$('to').value=p.to||'';$('items').innerHTML='';seq=0;p.items.forEach(x=>add(x.desc,x.q,x.p));calc();scrollTo(0,0)}
 function render(){$('history').innerHTML=data().map(p=>`<div class="hrow"><div><b>${esc(p.no)}</b><br>${esc(p.date)}</div><div style="text-align:right"><b>${fmt(p.total)}</b><br><button class="secondary noprint" onclick="load('${p.no}')">Open / Edit</button></div></div>`).join('')||'No invoices saved.'}
 function fresh(){current=next();$('inv').value=current;$('dt').value=new Date().toISOString().slice(0,10);['to'].forEach(x=>$(x).value='');$('items').innerHTML='';seq=0;add();add()}
@@ -35,69 +35,49 @@ fresh();render();
 
 
 
+
+
 function doPrint(){
-  const escHtml = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const rows = [...document.querySelectorAll('.item')].map(el => {
-    const desc = el.querySelector('.desc')?.value || '';
-    const qty = el.querySelector('.qty')?.value || '0';
-    const price = el.querySelector('.price')?.value || '0';
-    const amount = (Math.max(0, Number(qty)||0) * Math.max(0, Number(price)||0));
-    return `<tr><td>${escHtml(desc)}</td><td class="num">${escHtml(qty)}</td><td class="num">${escHtml((Number(price)||0).toFixed(2))}</td><td class="num">RM ${amount.toFixed(2)}</td></tr>`;
-  }).join('');
-  const subtotal = calc().s;
-  const w = window.open('', '_blank');
-  if(!w){ alert('请允许打开新页面，然后再试一次。'); return; }
-  const invoiceNo = escHtml($('inv').value);
-  const date = escHtml($('dt').value);
-  const plate = escHtml($('to').value);
-  const doc = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lauda Spray Invoice</title>
-  <style>
-  @page{size:A4;margin:14mm}
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0;background:#fff;color:#111;font:12px Arial,Helvetica,sans-serif}
-  .brand{border-bottom:3px solid #f28c28;padding:4px 0 12px;margin-bottom:18px}
-  .brand h1{margin:0;color:#f28c28;font-size:24px;letter-spacing:.7px}
-  .brand small{font-size:10px;letter-spacing:1.5px;color:#222}
-  h2{font-size:17px;margin:0 0 14px}
-  .address{font-size:11px;line-height:1.7;margin-bottom:16px}
-  .meta{display:flex;justify-content:space-between;align-items:flex-end;margin:12px 0}
-  .meta .no{font-size:13px;font-weight:bold}
-  .meta .date{font-size:12px;text-align:right}
-  .field{margin:14px 0}
-  .field .label{font-size:10px;color:#555;margin-bottom:5px}
-  .field .value{font-size:13px;font-weight:600;min-height:18px}
-  .items-label{font-size:12px;margin:18px 0 7px}
-  table{width:100%;border-collapse:collapse;table-layout:fixed;border:1px solid #ccc}
-  th,td{padding:9px 8px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top;overflow-wrap:anywhere}
-  th{font-size:10px;background:#f5f5f5;font-weight:600}
-  td{font-size:11px}
-  th:nth-child(1),td:nth-child(1){width:52%}
-  th:nth-child(2),td:nth-child(2){width:12%}
-  th:nth-child(3),td:nth-child(3){width:16%}
-  th:nth-child(4),td:nth-child(4){width:20%}
-  .num{text-align:right;white-space:nowrap}
-  .subtotal{display:flex;justify-content:space-between;margin:15px 0 10px;font-size:12px}
-  .total{display:flex;justify-content:space-between;border-top:1px solid #777;padding-top:12px;font-size:21px;font-weight:bold}
-  .payment{margin-top:30px}
-  .payment h2{font-size:14px;margin-bottom:10px}
-  .bank{font-weight:bold;font-size:12px;line-height:1.8}
-  .bank span{display:block;font-weight:normal;font-size:11px}
-  </style></head><body>
-  <div class="brand"><h1>LAUDA SPRAY</h1><small>AUTOMOTIVE SPRAY &amp; REPAIR</small></div>
-  <h2>INVOICE</h2>
-  <div class="address">17, Mutiara Emas 7/3, Mount Austin, 81100 Johor Bahru<br>Tel: 016-746 6772</div>
-  <div class="meta"><div><div class="field"><div class="label">Invoice Number</div><div class="no">${invoiceNo}</div></div></div><div class="date">${date}</div></div>
-  <div class="field"><div class="label">TO</div><div class="value">${plate}</div></div>
-  <div class="items-label">Items</div>
-  <table><thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit RM</th><th class="num">Amount</th></tr></thead><tbody>${rows}</tbody></table>
-  <div class="subtotal"><span>Subtotal</span><b>RM ${subtotal.toFixed(2)}</b></div>
-  <div class="total"><span>TOTAL</span><span>RM ${subtotal.toFixed(2)}</span></div>
-  <div class="payment"><h2>PAYMENT DETAILS</h2><div class="bank">PUBLIC BANK<span>6328289413</span><span>SEOW HAAN XIANG</span></div></div>
-  </body></html>`;
-  w.document.open();
-  w.document.write(doc);
-  w.document.close();
-  setTimeout(()=>{ try { w.focus(); w.print(); } catch(e) { alert('请在打印页面点击分享，再选择储存到文件。'); } }, 800);
+  const p=payload(), commands=[];
+  const ascii=v=>String(v??'').replace(/[^\x20-\x7E]/g,'?');
+  const esc=v=>ascii(v).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
+  const t=(x,y,size,v,b=false)=>commands.push(`BT /${b?'F2':'F1'} ${size} Tf ${x} ${y} Td (${esc(v)}) Tj ET`);
+  const ln=(x1,y1,x2,y2,w=.6)=>commands.push(`${w} w ${x1} ${y1} m ${x2} ${y2} l S`);
+  const box=(x,y,w,h)=>commands.push(`${x} ${y} ${w} ${h} re S`);
+  const rt=(x,y,size,v,b=false)=>{let q=ascii(v);t(x-q.length*size*.52,y,size,q,b)};
+  commands.push('0.95 0.45 0.12 RG');t(42,795,24,'LAUDA SPRAY',true);commands.push('0 0 0 RG');
+  t(42,778,9,'AUTOMOTIVE SPRAY & REPAIR');commands.push('0.95 0.45 0.12 RG');ln(42,766,553,766,2);commands.push('0 0 0 RG');
+  t(42,738,17,'INVOICE',true);t(42,713,10,'17, Mutiara Emas 7/3, Mount Austin, 81100 Johor Bahru');t(42,698,10,'Tel: 016-746 6772');
+  t(42,670,9,'Invoice Number');t(42,651,13,p.no,true);rt(553,651,11,p.date);
+  t(42,620,9,'TO');t(42,602,12,p.to||'-');t(42,572,10,'Items',true);
+  const top=552,rowH=27;commands.push('0.85 0.85 0.85 RG');box(42,top-rowH,511,rowH);commands.push('0 0 0 RG');
+  t(50,top-18,9,'Description',true);rt(374,top-18,9,'Qty',true);rt(454,top-18,9,'Unit RM',true);rt(545,top-18,9,'Amount',true);
+  let y=top-rowH;
+  p.items.forEach(it=>{y-=rowH;commands.push('0.88 0.88 0.88 RG');ln(42,y,553,y,.5);commands.push('0 0 0 RG');t(50,y+9,9,it.desc||'-');rt(374,y+9,9,String(it.q));rt(454,y+9,9,(Number(it.p)||0).toFixed(2));rt(545,y+9,9,'RM '+((Number(it.q)||0)*(Number(it.p)||0)).toFixed(2));});
+  commands.push('0.75 0.75 0.75 RG');box(42,y,511,top-rowH-y);commands.push('0 0 0 RG');
+  const sy=y-30;t(42,sy,10,'Subtotal');rt(553,sy,10,'RM '+p.subtotal.toFixed(2),true);ln(42,sy-13,553,sy-13,.8);
+  t(42,sy-42,17,'TOTAL',true);rt(553,sy-42,17,'RM '+p.total.toFixed(2),true);
+  const py=sy-94;t(42,py,13,'PAYMENT DETAILS',true);t(42,py-24,11,'PUBLIC BANK',true);t(42,py-41,10,'6328289413');t(42,py-56,10,'SEOW HAAN XIANG');
+  const stream=commands.join('\n'), objs=[
+    '<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
+    `<< /Length ${new TextEncoder().encode(stream).length} >>\nstream\n${stream}\nendstream`
+  ];
+  let pdf='%PDF-1.4\n',offs=[0];objs.forEach((o,i)=>{offs.push(new TextEncoder().encode(pdf).length);pdf+=`${i+1} 0 obj\n${o}\nendobj\n`;});
+  const xref=new TextEncoder().encode(pdf).length;pdf+=`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`;
+  for(let i=1;i<offs.length;i++)pdf+=String(offs[i]).padStart(10,'0')+' 00000 n \n';
+  pdf+=`trailer\n<< /Size ${objs.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  const file=new File([new TextEncoder().encode(pdf)],`${p.no}.pdf`,{type:'application/pdf'});
+  const shareData={files:[file],title:`Lauda Spray ${p.no}`};
+  if(navigator.share && navigator.canShare && navigator.canShare(shareData)){
+    navigator.share(shareData).catch(err=>{if(err.name!=='AbortError')alert('无法打开分享菜单。请从 Safari 打开此发票，再尝试储存 PDF。');});
+  }else{
+    const url=URL.createObjectURL(file);
+    const a=document.createElement('a');a.href=url;a.download=file.name;a.target='_blank';a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    alert('此模式暂不支持直接分享 PDF。若没有出现储存选项，请用 Safari 打开同一网址保存。');
+  }
 }
 
 
