@@ -33,37 +33,74 @@ function backup(){let b=new Blob([JSON.stringify(data(),null,2)],{type:'applicat
 function restore(e){let r=new FileReader();r.onload=()=>{try{let a=JSON.parse(r.result);if(!Array.isArray(a))throw 0;localStorage.setItem('lsInvoices',JSON.stringify(a));render();alert('Backup restored')}catch(x){alert('Invalid backup')}};r.readAsText(e.target.files[0])}
 fresh();render();
 
+
 function doPrint(){
   const source = document.querySelector('main');
-  if(!source){ alert('Invoice page is not ready.'); return; }
+  const brand = document.querySelector('header');
+  if(!source || !brand){ alert('Invoice page is not ready.'); return; }
+
+  const headerClone = brand.cloneNode(true);
   const clone = source.cloneNode(true);
-  clone.querySelectorAll('.noprint,button,input[type="file"]').forEach(el=>el.remove());
+
+  // Remove controls and history/backup UI; keep only the invoice and payment details.
+  clone.querySelectorAll('.noprint,button,input[type="file"],.notice').forEach(el=>el.remove());
+  const historyPanel = clone.querySelector('#history');
+  if(historyPanel) historyPanel.closest('.panel')?.remove();
+
+  // Render current input values as printable text while preserving the original grid structure.
   clone.querySelectorAll('input').forEach(el=>{
-    const span=document.createElement('span');
-    span.textContent=el.value || '';
-    span.style.cssText='display:inline-block;min-width:30px;padding:3px 4px;color:#000;border:0;';
+    const span = document.createElement('span');
+    span.textContent = el.value || '';
+    span.className = el.classList.contains('amt') ? 'print-value amount' :
+                     el.classList.contains('qty') ? 'print-value qty' :
+                     el.classList.contains('price') ? 'print-value price' :
+                     el.classList.contains('desc') ? 'print-value desc' :
+                     el.classList.contains('invoice-date') ? 'print-value invoice-date' :
+                     'print-value';
     el.replaceWith(span);
   });
+
   const css = `
-    @page{size:A4;margin:10mm}
-    *{box-sizing:border-box;color:#000!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    body{margin:0;background:#fff!important;color:#000!important;font:14px Arial,sans-serif}
-    header{background:#fff!important;padding:10px;border-bottom:2px solid #f28c28}
-    header h1{color:#f28c28!important}
-    main{display:block!important;margin:0!important;padding:0!important;max-width:none!important}
-    .panel{background:#fff!important;box-shadow:none!important;border:0!important;padding:8px 0!important;margin:0 0 12px!important}
-    .items-frame{background:#fff!important;border:1px solid #ddd!important}
-    .item{border:0!important}
-    .items-head,label,.muted,.bank,.line,.total{color:#000!important}
-    button,.noprint,.notice{display:none!important}
+    @page { size:A4; margin:12mm; }
+    * { box-sizing:border-box; color:#000 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    html,body { margin:0; padding:0; background:#fff !important; font:12px Arial,Helvetica,sans-serif; }
+    header { display:block; background:#fff !important; color:#000 !important; padding:8px 0 10px !important; border-bottom:2px solid #f28c28 !important; margin:0 0 14px !important; }
+    header h1 { margin:0; color:#f28c28 !important; font-size:22px !important; letter-spacing:.7px; }
+    header small { color:#000 !important; font-size:9px !important; letter-spacing:1.3px; }
+    main { display:block !important; width:100% !important; max-width:none !important; margin:0 !important; padding:0 !important; }
+    .panel { display:block !important; width:100% !important; background:#fff !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; padding:7px 0 !important; margin:0 0 12px !important; }
+    h2 { color:#000 !important; font-size:15px !important; margin:0 0 12px !important; }
+    label { display:block !important; color:#000 !important; font-size:10px !important; margin:8px 0 4px !important; }
+    .muted { color:#000 !important; font-size:10px !important; line-height:1.5 !important; }
+    .invoice-meta { display:flex !important; align-items:flex-end !important; justify-content:space-between !important; gap:12px !important; }
+    .invoice-label { flex:1 !important; min-width:0 !important; }
+    .invoice-date { width:34mm !important; text-align:right !important; white-space:nowrap !important; }
+    .row { display:grid !important; grid-template-columns:1fr 1fr !important; gap:12px !important; }
+    .items-frame { display:block !important; width:100% !important; background:#fff !important; border:1px solid #ccc !important; border-radius:6px !important; padding:7px 8px !important; }
+    .items-head,.ig { display:grid !important; grid-template-columns:minmax(0,1fr) 14mm 20mm 25mm !important; gap:6px !important; align-items:center !important; width:100% !important; }
+    .items-head { color:#000 !important; font-size:9px !important; padding:0 0 5px !important; border-bottom:1px solid #ddd !important; }
+    .ig { margin:0 !important; padding:5px 0 !important; }
+    .ig > div { min-width:0 !important; }
+    .print-value { display:block !important; min-width:0 !important; width:100% !important; padding:3px 2px !important; color:#000 !important; font-size:10px !important; line-height:1.3 !important; overflow-wrap:anywhere !important; }
+    .print-value.qty,.print-value.price,.print-value.amount { text-align:right !important; white-space:nowrap !important; }
+    .line { display:flex !important; justify-content:space-between !important; margin:10px 0 !important; color:#000 !important; font-size:11px !important; }
+    .total { font-size:18px !important; font-weight:bold !important; border-top:1px solid #777 !important; padding-top:10px !important; color:#000 !important; }
+    .total span:last-child { color:#000 !important; }
+    .bank { display:flex !important; flex-direction:column !important; align-items:flex-start !important; gap:3px !important; }
+    .bank b { font-size:11px !important; }
+    .bank .muted { display:block !important; text-align:left !important; }
+    .actions,.noprint,.notice,button { display:none !important; }
+    aside { display:block !important; }
   `;
-  const w=window.open('', '_blank');
+
+  const w = window.open('', '_blank');
   if(!w){ alert('请允许打开新页面，然后再试一次。'); return; }
   w.document.open();
-  w.document.write('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lauda Spray Invoice</title><style>'+css+'</style></head><body>'+clone.outerHTML+'</body></html>');
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lauda Spray Invoice</title><style>'+css+'</style></head><body>'+headerClone.outerHTML+clone.outerHTML+'</body></html>');
   w.document.close();
-  w.onload=()=>{ setTimeout(()=>{ try{w.focus();w.print();}catch(e){alert('请使用分享按钮或浏览器菜单打印此发票。');} },500); };
+  setTimeout(()=>{ try { w.focus(); w.print(); } catch(e) { alert('请使用分享按钮或浏览器菜单打印此发票。'); } }, 700);
 }
+
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
