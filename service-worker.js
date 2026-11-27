@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lauda-spray-invoice-v10';
+const CACHE_NAME = 'lauda-spray-invoice-v11';
 const APP_FILES = [
   './',
   './index.html',

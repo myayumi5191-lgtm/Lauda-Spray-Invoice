@@ -20,14 +20,19 @@ h2{font-size:18px;margin:0 0 15px;color:var(--ink)}label{display:block;color:var
   .invoice-date{max-width:125px;font-size:16px;padding:15px 8px}
   .items-frame{padding:12px;border-radius:10px}
   .items-head{display:none}
-  .ig{grid-template-columns:1fr 1fr 1fr 38px;gap:8px;align-items:end}
-  .ig>div:first-child{grid-column:1/-1}
-  .ig>div:nth-child(2)::before{content:"Qty";display:block;color:var(--muted);font-size:14px;margin:0 0 5px}
-  .ig>div:nth-child(3)::before{content:"Unit RM";display:block;color:var(--muted);font-size:14px;margin:0 0 5px}
-  .ig>div:nth-child(4)::before{content:"Amount RM";display:block;color:var(--muted);font-size:14px;margin:0 0 5px}
-  .ig input{min-width:0;width:100%;padding:14px 9px;font-size:17px;min-height:52px}
+  /* Explicit mobile item layout: description on its own row, values below */
+  .ig{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr)) 42px!important;grid-template-areas:"desc desc desc desc" "qty price amount remove";gap:9px!important;align-items:end!important;width:100%}
+  .ig>div:nth-child(1){grid-area:desc!important;min-width:0}
+  .ig>div:nth-child(2){grid-area:qty!important;min-width:0}
+  .ig>div:nth-child(3){grid-area:price!important;min-width:0}
+  .ig>div:nth-child(4){grid-area:amount!important;min-width:0}
+  .ig>.remove{grid-area:remove!important}
+  .ig>div:nth-child(2)::before{content:"Qty";display:block;color:var(--muted);font-size:15px;margin:0 0 6px}
+  .ig>div:nth-child(3)::before{content:"Unit RM";display:block;color:var(--muted);font-size:15px;margin:0 0 6px}
+  .ig>div:nth-child(4)::before{content:"Amount";display:block;color:var(--muted);font-size:15px;margin:0 0 6px}
+  .ig input{min-width:0;width:100%;padding:14px 9px;font-size:17px;min-height:54px}
   .ig .desc{font-size:18px}
-  .ig .remove{padding:10px 7px;font-size:19px;min-height:48px;align-self:end}
+  .ig .remove{width:42px;padding:10px 5px;font-size:19px;min-height:54px;align-self:end}
   .item{padding:12px 0;margin:0;border-bottom:1px solid var(--line)!important}
   .actions{gap:10px;margin-top:18px}
   .actions button,button{min-height:54px;padding:15px 16px;font-size:17px;border-radius:9px}
