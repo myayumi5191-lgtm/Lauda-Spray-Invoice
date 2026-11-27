@@ -45,7 +45,7 @@ function doPrint(){
   const ln=(x1,y1,x2,y2,w=.6)=>commands.push(`${w} w ${x1} ${y1} m ${x2} ${y2} l S`);
   const box=(x,y,w,h)=>commands.push(`${x} ${y} ${w} ${h} re S`);
   const rt=(x,y,size,v,b=false)=>{let q=ascii(v);t(x-q.length*size*.52,y,size,q,b)};
-  commands.push('0.95 0.45 0.12 RG');t(42,795,24,'LAUDA SPRAY',true);commands.push('0 0 0 RG');
+  commands.push('0.95 0.45 0.12 rg');t(42,795,24,'LAUDA SPRAY',true);commands.push('0 0 0 rg');commands.push('0.95 0.45 0.12 RG');
   t(42,778,9,'AUTOMOTIVE SPRAY & REPAIR');commands.push('0.95 0.45 0.12 RG');ln(42,766,553,766,2);commands.push('0 0 0 RG');
   t(42,738,17,'INVOICE',true);t(42,713,10,'17, Mutiara Emas 7/3, Mount Austin, 81100 Johor Bahru');t(42,698,10,'Tel: 016-746 6772');
   t(42,670,9,'Invoice Number');t(42,651,13,p.no,true);rt(553,651,11,p.date);
